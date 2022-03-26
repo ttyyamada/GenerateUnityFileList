@@ -47,6 +47,12 @@ namespace GenerateFileList
         {
             GetWindow<GenerateFileList>(nameof(GenerateFileList));
         }
+        
+        private void OnEnable()
+        {
+            _currentWindow = this;
+            _codeTemplate = Resources.Load<TextAsset>(CodeTemplateFileName).text;
+        }
 
         private void OnGUI()
         {
@@ -78,6 +84,9 @@ namespace GenerateFileList
             GUILayout.EndArea();
         }
 
+        /// <summary>
+        /// 名前のリストを生成する
+        /// </summary>
         private void CreateNameList()
         {
             var searchFolder = AssetDatabase.GetAssetOrScenePath(_searchFolder);
@@ -96,6 +105,7 @@ namespace GenerateFileList
                 {
                     assetPath += dataPath[i] + "/";
                 }
+                // フルパスから対象のフォルダからの相対パスに変換する
                 var targetFile = file.FullName.Replace(assetPath, "").Replace($"{AssetDatabase.GetAssetOrScenePath(_searchFolder)}/", "");
                 if(_targetNameList.Contains(targetFile)) continue;
                 _targetNameList.Add(targetFile);
@@ -117,12 +127,6 @@ namespace GenerateFileList
             }
 
             return false;
-        }
-
-        private void OnEnable()
-        {
-            _currentWindow = this;
-            _codeTemplate = Resources.Load<TextAsset>(CodeTemplateFileName).text;
         }
 
         /// <summary>
