@@ -5,3 +5,6 @@ Unityのファイルのリストを作成する拡張です
 
 解説記事はこちら
 https://qiita.com/YamadaGames/items/86c840bbe4fe0e08f247
+
+UnityPackage
+https://github.com/ttyyamada/GenerateUnityFileList/blob/main/GenerateFileNameList.unitypackage
