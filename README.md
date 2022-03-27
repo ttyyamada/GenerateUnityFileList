@@ -1,0 +1,7 @@
+# GenerateUnityFileList
+Unityのファイルのリストを作成する拡張です
+
+![GenerateFileList](https://user-images.githubusercontent.com/17377478/160262264-bd05cd6b-aed7-4c9a-b9f3-a47b0238fad4.gif)
+
+解説記事はこちら
+https://qiita.com/YamadaGames/items/86c840bbe4fe0e08f247
