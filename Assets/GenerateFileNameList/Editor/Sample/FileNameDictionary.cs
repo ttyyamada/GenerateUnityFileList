@@ -7,7 +7,7 @@ namespace GenerateFileList
 {
     public static class FileNamesDictionary
     {
-         public static Dictionary<string, string> nameList = new Dictionary<string, string>
+         public static readonly Dictionary<string, string> nameList = new Dictionary<string, string>
             {
                 {"name1", "name1.png"},
                 {"name2", "name2.png"},
