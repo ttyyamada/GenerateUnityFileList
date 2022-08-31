@@ -7,7 +7,7 @@ namespace #NAMESPACE#
 {
     public static class #CLASSNAME#
     {
-         public static Dictionary<string, string> nameList = new Dictionary<string, string>
+         public static readonly Dictionary<string, string> nameList = new Dictionary<string, string>
             {
                 {"#FILENAME#", "#filename#"},
             };
