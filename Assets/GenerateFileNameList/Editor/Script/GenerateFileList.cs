@@ -15,7 +15,7 @@ namespace GenerateFileList
         private DefaultAsset _createTargetFolder;
 
         // 無視する拡張子のリスト
-        private readonly List<string> _ignoreExtensionList = new List<string> {".meta", ".txt", ".DS_Store", ".cs"};
+        private readonly HashSet<string> _ignoreExtensionList = new HashSet<string> {};
 
         // 名前のリスト
         private readonly List<string> _targetNameList = new List<string>();
@@ -38,6 +38,7 @@ namespace GenerateFileList
         // 置き換える対象のリスト
         private static readonly string CodeTemplateFileName = "NameListsTemplate";
         private static readonly string CodeTemplateFileNameDictionary = "NameDictionaryTemplate";
+        private static readonly string IgnoreExtensionList = "IgnoreExtensionList";
         private static readonly string NameSpaceReplaceTarget = "#NAMESPACE#";
         private static readonly string ClassNameReplaceTarget = "#CLASSNAME#";
         private static readonly string FileNameReplaceTarget = "#FILENAME#";
@@ -50,6 +51,7 @@ namespace GenerateFileList
             "                {\"#FILENAME#\", \"#filename#\"},";
 
         private string _nameLineTemplate;
+        private string _ignoreFileExtensionListString;
 
         private static readonly string OutputFileNameKey = "generate_file_list_output_file_name_key";
         private static readonly string OutputClassNameKey = "generate_file_list_output_class_name_key";
@@ -67,6 +69,13 @@ namespace GenerateFileList
             _currentWindow = this;
             _codeTemplateFileList = Resources.Load<TextAsset>(CodeTemplateFileName).text;
             _codeTemplateFileDictionary = Resources.Load<TextAsset>(CodeTemplateFileNameDictionary).text;
+            var ignoreExtensionArray = Resources.Load<TextAsset>(IgnoreExtensionList).text.Split(',');
+            foreach (var ignoreExtension in ignoreExtensionArray)
+            {
+                _ignoreFileExtensionListString += " " + ignoreExtension;
+                _ignoreExtensionList.Add(ignoreExtension);
+            }
+
             _outputFileName = PlayerPrefs.GetString(OutputFileNameKey, _outputFileName);
             _outputClassName = PlayerPrefs.GetString(OutputClassNameKey, _outputClassName);
             _outputNameSpaceName = PlayerPrefs.GetString(OutputNameSpaceKey, _outputNameSpaceName);
@@ -75,10 +84,15 @@ namespace GenerateFileList
 
         private void OnGUI()
         {
-            GUILayout.BeginArea(new Rect(0, 0, _currentWindow.position.size.x, _currentWindow.position.size.y));
             if (_codeTemplateFileList == null || _codeTemplateFileDictionary == null)
             {
                 EditorGUILayout.HelpBox("コードテンプレートの読み込みエラー", MessageType.Error);
+                GUILayout.EndArea();
+                return;
+            }
+            if (_ignoreExtensionList.Count == 0)
+            {
+                EditorGUILayout.HelpBox("無視拡張子リストの読み込みエラー", MessageType.Error);
                 GUILayout.EndArea();
                 return;
             }
@@ -88,24 +102,28 @@ namespace GenerateFileList
             if (_searchFolder == null)
             {
                 EditorGUILayout.HelpBox("NameListを作成するフォルダを選択してください", MessageType.Info);
+                EditorGUILayout.LabelField("除外される拡張子一覧");
+                EditorGUILayout.LabelField(_ignoreFileExtensionListString);
             }
             else
             {
                 _currentCreateMode = (CreateMode) EditorGUILayout.EnumPopup("生成タイプ", _currentCreateMode);
                 _outputFileName = EditorGUILayout.TextField("ファイル名(拡張子は無し)", _outputFileName);
-                _outputNameSpaceName = EditorGUILayout.TextField("namaspace名", _outputNameSpaceName);
+                _outputNameSpaceName = EditorGUILayout.TextField("namespace名", _outputNameSpaceName);
                 _outputClassName = EditorGUILayout.TextField("クラス名", _outputClassName);
                 _createTargetFolder =
                     (DefaultAsset) EditorGUILayout.ObjectField("生成先フォルダ", _createTargetFolder, typeof(DefaultAsset),
                         false);
                 _isIncludeSubFolder = EditorGUILayout.ToggleLeft("サブフォルダを含める", _isIncludeSubFolder);
-                if (GUILayout.Button("生成！"))
+                if (_createTargetFolder == null)
+                {
+                    EditorGUILayout.HelpBox("生成先フォルダを選択してください", MessageType.Info);
+                }
+                else if (GUILayout.Button("生成！"))
                 {
                     CreateNameList();
                 }
             }
-
-            GUILayout.EndArea();
         }
 
         /// <summary>
@@ -118,20 +136,22 @@ namespace GenerateFileList
             var searchOption = _isIncludeSubFolder ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
             var info = dir.GetFiles("*", searchOption);
             _targetNameList.Clear();
+            // プロジェクトのルートパス以外を削除するために覚えておく
+            var dataPath = Application.dataPath.Split('/');
+            var assetPath = "";
+            for (var i = 0; i < dataPath.Length - 1; i++)
+            {
+                assetPath += dataPath[i] + "/";
+            }
+
             foreach (var file in info)
             {
                 // 無視拡張子チェック
                 if (IsContainsIgnoreExtension(file.Name)) continue;
-                // プロジェクトのルートパス意外を削除
-                var dataPath = Application.dataPath.Split('/');
-                var assetPath = "";
-                for (int i = 0; i < dataPath.Length - 1; i++)
-                {
-                    assetPath += dataPath[i] + "/";
-                }
-
                 // フルパスから対象のフォルダからの相対パスに変換する
-                var targetFile = file.FullName.Replace(assetPath, "")
+                var targetFile = file.FullName
+                    .Replace(Path.DirectorySeparatorChar, '/')
+                    .Replace(assetPath, "")
                     .Replace($"{AssetDatabase.GetAssetOrScenePath(_searchFolder)}/", "");
                 if (_targetNameList.Contains(targetFile)) continue;
                 _targetNameList.Add(targetFile);
@@ -145,15 +165,7 @@ namespace GenerateFileList
         /// </summary>
         private bool IsContainsIgnoreExtension(string fileName)
         {
-            foreach (var ignoreExtension in _ignoreExtensionList)
-            {
-                if (Path.GetExtension(fileName).Equals(ignoreExtension))
-                {
-                    return true;
-                }
-            }
-
-            return false;
+            return _ignoreExtensionList.Contains(Path.GetExtension(fileName));
         }
 
         /// <summary>
